@@ -1,44 +1,62 @@
-## Sub-Problem 3: Hierarchical Attitude Control
+## Sub-Problem 2: Minimum-Fuel Attitude Control (MPC)
 
-### Approach
-Started with full MIMO plant analysis to understand coupling between
-orbital thruster (u1) and rotational thruster (u2):
-- **RGA analysis**: confirmed optimal pairing u1↔y1 (orbital), u2↔y2 (attitude)
-- **Condition Number**: up to 250 at high v1/alpha → proved gain scheduling needed
-- **Niederlinski Index**: NI > 0 → stable decoupled pairing confirmed
-- **Coupling magnitude**: |G12/G11| = 20.27% → decoupler cannot be ignored
+### Problem
+Attitude control of space station to maintain alignment with velocity
+vector within 600 seconds. Starting from -30° misalignment.
+Success criterion: final alignment error < ±10°.
+Stretch target: 0.00° error with ≤ 0.0033 kg fuel.
 
-### Architecture
-**Outer Loop (every 600s):** PID controller (Kp=0.12, Ki=0.004, Kd=0.06)
-with gain-scheduled decoupler. Decoupler D12 recomputed at each step
-from current (v1, alpha) operating point — fixes the static D12=13.57
-that was wrong across the full operating range.
+### Step 1 — Baseline PID (what we started with)
+Tuned PID gains: Kp=0.1, Ki=0.01, Kd=0.1
+- Starting from -10°: final error = 8.90°, fuel = 0.0123 kg
+- Just barely within ±10° target
+- Problem: slow response, high fuel, cannot reach ±1° or ±0.1°
 
-**Inner Loop (every 10s):** L1-MPC with bang-coast-bang profile.
-Horizon H=20, Q=50, R=120 (heavy penalty suppresses micro-corrections),
-terminal cost Qf=2500 for fast convergence.
+### Step 2 — Standard MPC (quadratic cost, first attempt)
+Replaced PID with receding-horizon MPC.
+State model: double-integrator (error, omega)
+Dynamics:
+  error(k+1) = error(k) - omega(k)*dt - 0.5*g*u(k)*dt²
+  omega(k+1) = omega(k) + g*u(k)*dt
 
-**EMA Noise Filter:** Applied to all states before control computation.
-Betas tuned separately for position (0.4) and velocity (0.3).
+Cost: J = Q*Σe² + R*Σu² + Qf*e_N²
+Parameters: horizon=15, Q=200, R=0.5, Qf=2000
 
-**Pre-Warm Optimizer:** MPC solved once on initial error before
-simulation starts. Injects optimal u-sequence as warm start →
-eliminates cold-start fuel spike from 0.0059 kg down to optimal.
+Result: final error = -0.0101° S (within ±0.1°)
+BUT fuel = 0.0574 kg F (17× too high)
 
-**Deadband:** Below ±0.5° error AND ±0.05°/s angular rate → u=0.
-Stops post-convergence micro-thrusting that accumulates unnecessary fuel.
+Root cause: quadratic R*u² spreads thrust evenly across all steps
+→ small continuous corrections → high total fuel
+
+### Step 3 — L1-MPC (minimum-fuel, bang-coast-bang)
+Key insight: L1 cost |u| directly penalises total fuel.
+Quadratic u² encourages many small thrusts → expensive.
+L1 |u| encourages sparse thrust → bang-coast-bang → fuel-optimal.
+
+L1 approximated as R*sqrt(u²+ε²) for smooth gradients (L-BFGS-B).
+
+Cost: J = Q*Σe² + R*Σsqrt(u²+ε²) + Qf*e_N²
+Parameters: horizon=20, Q=50, R=80 (heavy fuel penalty), Qf=1000
+
+Plant gain identified from simulation: g = 0.018 deg/s² per unit u
+
+Two-pass optimisation:
+- Pass 1: coarse (maxiter=500, ftol=1e-14)
+- Pass 2: fine polish from pass 1 result (ftol=1e-16)
+Warm-start: shifted previous solution → faster convergence
 
 ### Results
-| Metric | Target | Achieved |
-|--------|--------|----------|
-| Alignment | ±10° | S |
-| Alignment | ±1° | S |
-| Alignment | ±0.1° | S |
-| Fuel per step (converged) | ≤ 0.0033 kg | S |
-| Cold-start fuel (step 1) | minimized | S pre-warm applied |
-| Steady-state fuel | optimal | S 0.0033 kg |
+
+| Metric | Target | PID | Quadratic MPC | L1-MPC |
+|--------|--------|-----|---------------|--------|
+| Within ±10° | S | S 8.90° | S 0.01° | S |
+| Within ±1° | stretch | F | S | S |
+| Within ±0.1° | stretch | F | S | S |
+| Fuel ≤ 0.0033 kg | stretch | F 0.0123 | F 0.0574 | S |
 
 ### Key Insight
-Static decoupler failed because D12 varies from 0 to ~76 across the
-operating range. Gain-scheduled decoupler recomputed from live (v1, alpha)
-solved the cross-coupling problem completely.
+The switch from quadratic (R*u²) to L1 (R*|u|) cost function
+is the critical design decision. L1 naturally produces bang-coast-bang
+thrust profiles — maximum thrust for minimum time — which is the
+mathematically optimal solution for fuel-constrained manoeuvres.
+This is known as the "minimum-fuel theorem" in optimal control theory.
