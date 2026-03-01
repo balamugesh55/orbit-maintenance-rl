@@ -6,7 +6,7 @@
 #
 # Fix: L1 cost R*|u| penalises total fuel DIRECTLY
 #      - optimizer naturally finds bang-coast-bang solution
-#      - sparse thrust: thrust only when necessary → low fuel
+#      - sparse thrust: thrust only when necessary - low fuel
 #
 # L1 is approximated as R*sqrt(u²+ε) for smooth gradients (L-BFGS-B)
 #
@@ -177,3 +177,4 @@ if abs(final_error) > 1.0:
     print(f"  - Or increase Q_f multiplier (currently 20×)")
 
 print("\n Sub Task 2 Complete!")
+
