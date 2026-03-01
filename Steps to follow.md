@@ -42,7 +42,7 @@ steady-state fuel ≤ 0.0033 kg/step.
 orbit-maintenance-rl/
 │
 ├── main_task_rl.py              # Main task — PPO hybrid expert
-├── main_task_model_seed1.zip    # Trained PPO model (submit this)
+├── main_task_model_seed1.zip    # Trained PPO model 
 │
 ├── subproblem1_advanced.py      # Curve fitting — system identification
 ├── subproblem2_advanced.py      # L1-MPC attitude control
