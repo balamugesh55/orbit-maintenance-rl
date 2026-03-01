@@ -1,44 +1,122 @@
-## Sub-Problem 3: Hierarchical Attitude Control
+## Sub-Problem 1: System Identification — Thrust & Drag Curve Fitting
 
-### Approach
-Started with full MIMO plant analysis to understand coupling between
-orbital thruster (u1) and rotational thruster (u2):
-- **RGA analysis**: confirmed optimal pairing u1↔y1 (orbital), u2↔y2 (attitude)
-- **Condition Number**: up to 250 at high v1/alpha → proved gain scheduling needed
-- **Niederlinski Index**: NI > 0 → stable decoupled pairing confirmed
-- **Coupling magnitude**: |G12/G11| = 20.27% → decoupler cannot be ignored
+### Problem
+Fit mathematical models to noisy measurement data from three physical
+components of the space station:
+1. **Drag factor** as a function of attitude angle α
+2. **Main thruster** thrust as a function of valve opening
+3. **Rotational thruster** thrust as a function of valve opening
 
-### Architecture
-**Outer Loop (every 600s):** PID controller (Kp=0.12, Ki=0.004, Kd=0.06)
-with gain-scheduled decoupler. Decoupler D12 recomputed at each step
-from current (v1, alpha) operating point — fixes the static D12=13.57
-that was wrong across the full operating range.
+All data contains realistic sensor noise. Goal: find parameters that
+best describe the underlying physics, not just memorise the noise.
 
-**Inner Loop (every 10s):** L1-MPC with bang-coast-bang profile.
-Horizon H=20, Q=50, R=120 (heavy penalty suppresses micro-corrections),
-terminal cost Qf=2500 for fast convergence.
+---
 
-**EMA Noise Filter:** Applied to all states before control computation.
-Betas tuned separately for position (0.4) and velocity (0.3).
+### Step 1 — Drag Factor Fitting
 
-**Pre-Warm Optimizer:** MPC solved once on initial error before
-simulation starts. Injects optimal u-sequence as warm start →
-eliminates cold-start fuel spike from 0.0059 kg down to optimal.
+**Model:** `f(α) = a + k · |sin(α)|`
 
-**Deadband:** Below ±0.5° error AND ±0.05°/s angular rate → u=0.
-Stops post-convergence micro-thrusting that accumulates unnecessary fuel.
+Physical basis: drag increases with the projected cross-section area,
+which is proportional to |sin(α)| at attitude angle α.
 
-### Results
-| Metric | Target | Achieved |
-|--------|--------|----------|
-| Alignment | ±10° | ✓ |
-| Alignment | ±1° | ✓ |
-| Alignment | ±0.1° | ✓ |
-| Fuel per step (converged) | ≤ 0.0033 kg | ✓ |
-| Cold-start fuel (step 1) | minimized | ✓ pre-warm applied |
-| Steady-state fuel | optimal | ✓ 0.0033 kg |
+**Approach:**
+- Started with basic `scipy.curve_fit` using multiple initial guesses
+  to avoid local minima: p0 = [1.0, 0.5], [1.0, 1.0], [1.2, 0.8], [0.8, 1.2]
+- Best result selected by lowest RMSE across all starting points
+- Extended to 3-parameter model `a + k·|sin(α)|^p` using
+  Differential Evolution (global search) + curve_fit polish to test
+  whether p≠1 could improve accuracy
+- Model selection: 3-param used only if RMSE strictly lower than 2-param
+
+**Result:**
+```
+f(α) = 0.99756157 + 1.00232838 · |sin(α)|
+R² = 0.9733  |  RMSE = 0.0515  |  Accuracy = 97.33%
+```
+
+**Why 97.33% is the noise floor:**
+SNR = R²/(1-R²) = 36.5 (15.6 dB). Reaching 99% R² would require
+8× less noise. Any higher fit = overfitting, not real improvement.
+Polynomial/spline/neural approaches would memorise noise — wrong for physics.
+
+---
+
+### Step 2 — Main Thruster Fitting
+
+**Model:** `f(x) = B · x^N` (power law)
+
+Physical basis: rocket thrust follows a power law with valve opening.
+
+**Approach:**
+- **Stage 1 — Log-log seed:** `log(thrust) = log(B) + N·log(x)`
+  Transformed to linear regression for a fast, reliable initial estimate.
+  Gave: B=231.2, N=1.672 (good start, not final)
+- **Stage 2 — Differential Evolution (global search):**
+  Searched bounds B∈[100,600], N∈[1.0,4.0] with 3000 iterations
+  to escape the log-log local minimum caused by noise near x=0.
+  Gave: B=398.94, N=2.485
+- **Stage 3 — Polish:** curve_fit from DE result for fine-tuning.
+  Two-pass optimisation: coarse (ftol=1e-14) then fine (ftol=1e-16)
+
+**Why log-log alone fails:** noise near valve=0 distorts the linear
+regression in log-space. DE global search finds the true minimum.
+
+**Result:**
+```
+f(x) = 398.93778616 · x^2.48474388
+R² = 0.9988  |  RMSE = 4.01 N  |  Accuracy = 99.88%
+RMSE ~4N on ~117N mean = 3.43% relative error (noise floor)
+```
+
+---
+
+### Step 3 — Rotational Thruster Fitting
+
+**Model:** `f(x) = B · x^N` (same power law form)
+
+**Approach:**
+- Same 3-stage pipeline as main thruster
+- Log-log seed: B=4.606, N=1.404
+- Differential Evolution: refined to B=4.986, N=1.492
+- curve_fit polish from DE result
+
+**Result:**
+```
+f(x) = 4.98570391 · x^1.49198812
+R² = 0.9989  |  RMSE = 0.0498  |  Accuracy = 99.89%
+```
+
+---
+
+### Accuracy Metric Used
+
+Standard MAPE was unreliable because near-zero thrust values (small
+valve openings) produce extremely large percentage errors even for
+tiny absolute errors. Used **R²-based accuracy** instead:
+```
+Accuracy = R² × 100%
+```
+
+Also reported **Median APE** (MdAPE) using only values above 5% of
+maximum — robust to low-value outliers.
+
+---
+
+### Final Results
+
+| Component | Model | R² | Accuracy |
+|-----------|-------|----|----------|
+| Drag factor | a + k·\|sin(α)\| | 0.9733 | 97.33% |
+| Main thrust | B·x^N | 0.9988 | 99.88% |
+| Rotational thrust | B·x^N | 0.9989 | 99.89% |
+
+All L2-norm tests passed against ground truth:
+- Drag L2 error: 0.017032
+- Main thrust L2 error: 4.214879
+- Rotational thrust L2 error: 0.055201
 
 ### Key Insight
-Static decoupler failed because D12 varies from 0 to ~76 across the
-operating range. Gain-scheduled decoupler recomputed from live (v1, alpha)
-solved the cross-coupling problem completely.****
+Log-log linearisation is a good starting point but fails for noisy
+power-law data near zero. Differential Evolution global search followed
+by gradient-based polish (two-pass L-BFGS-B) is the reliable solution
+for identifying nonlinear physical models from noisy measurements.
