@@ -372,7 +372,7 @@ for i in range(4):
         ax.text(j, i, f'{cn_mat[i,j]:.0f}', ha='center', va='center',
                 fontsize=9, fontweight='bold',
                 color='white' if cn_mat[i,j] > 125 else 'black')
-ax.set_title(f'Condition Number CN(v1, α)\nRed=ill-cond → gain scheduling justified\n'
+ax.set_title(f'Condition Number CN(v1, α)\nRed=ill-cond - gain scheduling justified\n'
              f'RGA: Λ=I S  |  NI={R["NI"]:.2f} S')
 
 plt.tight_layout()
@@ -381,3 +381,4 @@ plt.savefig(r"D:\UNi bremen- Space eng\lecture ppts\Computational Methods\subpro
 plt.show()
 print("=" * 58)
 print("\n Sub-Problem 3 Complete!")
+
