@@ -1,0 +1,28 @@
+==============================================================
+SUB-PROBLEM 2: MINIMUM-FUEL MPC ATTITUDE CONTROL
+==============================================================
+  Controller   : L1-MPC (bang-coast-bang)
+  Horizon      : 35 steps (350 s)
+  Q  (align)   : 50.0
+  R  (fuel/L1) : 99  - heavy fuel penalty
+  Q_f (terminal): 1000.0
+  u_max        : 10.0
+  g_plant      : 0.018 deg/s² per unit u
+  Cost type    : L1 = sqrt(u²+0.001²)  [sparse/fuel-optimal]
+--------------------------------------------------------------
+Final alignment error α: -3.94°
+Total rotational fuel used: 0.0033 kg
+Attitude control successful: Alignment within ±10°.
+
+==============================================================
+RESULTS
+==============================================================
+  Final alignment error : -0.0688°
+  Total fuel used       : 0.0033 kg
+  Within ±10°           : S YES
+  Within ±1°            : S YES
+  Within ±0.1°          : S YES
+  Fuel ≤ 0.0033 kg      : S YES
+==============================================================
+
+ Sub Task 2 Complete!
