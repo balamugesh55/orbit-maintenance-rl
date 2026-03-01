@@ -6,7 +6,7 @@ vector within 600 seconds. Starting from -30° misalignment.
 Success criterion: final alignment error < ±10°.
 Stretch target: 0.00° error with ≤ 0.0033 kg fuel.
 
-### Step 1 — Baseline PID (what we started with)
+### Step 1 — Baseline PID (what I started with)
 Tuned PID gains: Kp=0.1, Ki=0.01, Kd=0.1
 - Starting from -10°: final error = 8.90°, fuel = 0.0123 kg
 - Just barely within ±10° target
