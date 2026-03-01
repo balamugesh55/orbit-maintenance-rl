@@ -4,8 +4,8 @@
 Started with full MIMO plant analysis to understand coupling between
 orbital thruster (u1) and rotational thruster (u2):
 - **RGA analysis**: confirmed optimal pairing u1↔y1 (orbital), u2↔y2 (attitude)
-- **Condition Number**: up to 250 at high v1/alpha → proved gain scheduling needed
-- **Niederlinski Index**: NI > 0 → stable decoupled pairing confirmed
+- **Condition Number**: up to 250 at high v1/alpha = proved gain scheduling needed
+- **Niederlinski Index**: NI > 0 = stable decoupled pairing confirmed
 - **Coupling magnitude**: |G12/G11| = 20.27% → decoupler cannot be ignored
 
 ### Architecture
@@ -22,21 +22,21 @@ terminal cost Qf=2500 for fast convergence.
 Betas tuned separately for position (0.4) and velocity (0.3).
 
 **Pre-Warm Optimizer:** MPC solved once on initial error before
-simulation starts. Injects optimal u-sequence as warm start →
+simulation starts. Injects optimal u-sequence as warm start -
 eliminates cold-start fuel spike from 0.0059 kg down to optimal.
 
-**Deadband:** Below ±0.5° error AND ±0.05°/s angular rate → u=0.
+**Deadband:** Below ±0.5° error AND ±0.05°/s angular rate - u=0.
 Stops post-convergence micro-thrusting that accumulates unnecessary fuel.
 
 ### Results
 | Metric | Target | Achieved |
 |--------|--------|----------|
-| Alignment | ±10° | ✓ |
-| Alignment | ±1° | ✓ |
-| Alignment | ±0.1° | ✓ |
-| Fuel per step (converged) | ≤ 0.0033 kg | ✓ |
-| Cold-start fuel (step 1) | minimized | ✓ pre-warm applied |
-| Steady-state fuel | optimal | ✓ 0.0033 kg |
+| Alignment | ±10° | S |
+| Alignment | ±1° | S |
+| Alignment | ±0.1° | S |
+| Fuel per step (converged) | ≤ 0.0033 kg | S |
+| Cold-start fuel (step 1) | minimized | S pre-warm applied |
+| Steady-state fuel | optimal | S 0.0033 kg |
 
 ### Key Insight
 Static decoupler failed because D12 varies from 0 to ~76 across the
