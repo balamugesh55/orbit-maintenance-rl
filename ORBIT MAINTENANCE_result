@@ -4,7 +4,7 @@ MAIN TASK: ORBIT MAINTENANCE  (180 days, >= 330 kg fuel)
   v10 — RELIABLE BASELINE:
     PPO + hybrid expert (depth-dependent thrust)
     Expert trigger: da<-1200m OR dv<-7.0 m/s
-    Expert thrust:  0.220 → 0.308 → 0.440 (by depth)
+    Expert thrust:  0.220 -> 0.308 -> 0.440 (by depth)
     Proven result:  180 days, ~320 kg fuel
     seeds=[1] | 300k steps
 
