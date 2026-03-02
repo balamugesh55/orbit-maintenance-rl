@@ -205,13 +205,13 @@ Over 42 versions were explored across this project. Key findings:
 python main_task_rl.py --seed 1 --steps 300000 --plot
 
 # Sub-Problem 1
-python subproblem1_advanced.py
+python subtask1.py
 
 # Sub-Problem 2
-python subproblem2_advanced.py
+python subtask2.py
 
 # Sub-Problem 3
-python subproblem3_hierarchical.py
+python subtask3.py
 ```
 
 ---
