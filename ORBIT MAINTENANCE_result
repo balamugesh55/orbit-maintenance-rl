@@ -1,0 +1,37 @@
+==============================================================
+MAIN TASK: ORBIT MAINTENANCE  (180 days, >= 330 kg fuel)
+==============================================================
+  v10 — RELIABLE BASELINE:
+    PPO + hybrid expert (depth-dependent thrust)
+    Expert trigger: da<-1200m OR dv<-7.0 m/s
+    Expert thrust:  0.220 → 0.308 → 0.440 (by depth)
+    Proven result:  180 days, ~320 kg fuel
+    seeds=[1] | 300k steps
+
+  [1/1] Training seed=1 (300k steps)...
+  [ 20.0%] 60000 steps | 40.2min | ETA 160.8min
+Days in orbit: 180.0 days
+Fuel mass remaining: 320.5893670454663 kg
+Score = 232377.54226261273
+       S 180d | 320.6kg | expert=57.3% | PPO=0.066 | 55min
+
+  Model saved: main_task_model_seed1.zip  
+
+==============================================================
+FINAL RESULTS  (seed=1)
+==============================================================
+  Days in orbit   : 180.00 / 180.00
+  Fuel remaining  : 320.589 kg
+  Target          : 330.0 kg
+  Fuel used       : 79.410 kg  (v10 baseline: 79.8)
+  Expert %        : 57.3%  (depth-dependent 0.220-0.440)
+  PPO avg thrust  : 0.066
+  Total time      : 54.8 min
+  Model saved     : main_task_model_seed1.zip
+
+  180 days orbit  : S  (180.00)
+  Fuel >= 320 kg  : S  (320.589 kg)
+  Fuel >= 326 kg  : F  (320.589 kg)
+  Fuel >= 330 kg  : F  (320.589 kg)
+  Reproduce       : --seed 1 --steps 300000
+==============================================================
